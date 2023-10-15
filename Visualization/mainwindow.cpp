@@ -4,11 +4,12 @@
 #include <iostream>
 #include <cmath>
 
+
 #include <QPainter>
 
+#include "map.hpp"
+#include "objectmap.hpp"
 
-
-//#include <QGraphicsScene>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,32 +18,41 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     this->setFixedSize(this->w_width, this->w_height);
 
-    map = new QPixmap(size_map_x, size_map_y);
+    pixmap = new QPixmap(size_map_x, size_map_y);
     scene = new QGraphicsScene();
     view = new QGraphicsView(scene);
-    //view->resize(size_map_x, size_map_y);
+
+    map = new Map(size_map_x, size_map_y);
+    map->add_object(100, 400, 60, 5, (int) type_material::GLASS);
+    map->add_object(100, 300, 60, 5, (int) type_material::WOOD);
+    map->add_object(200, 300, 60, 20, (int) type_material::WOOD);
+    map->add_object(100, 200, 60, 5, (int) type_material::DRYWALL);
+
+    map->add_object(500, 600, 60, 5, (int) type_material::IRR_GLASS);
+
     view->setGeometry(pos_map_x, pos_map_y, size_map_x, size_map_y);
     this->layout()->addWidget(view);
     draw();
     draw_gradient();
+
     ui->lineEdit_f->setText(QString::number(val_f));
     ui->lineEdit_f->setInputMask("9.99");
-
-
 
 }
 
 MainWindow::~MainWindow()
 {
-    delete map;
+    delete pixmap;
     delete scene;
     delete ui;
 }
+
+
 int distance_points(int x1, int y1, int x2, int y2){
     return sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2));
 }
 double PL_func(double d, double f){
-    return 28.0 + 22.0 * log10(d * 100.0) + 20.0 * log10(f);
+    return 28.0 + 22.0 * log10(d * 100) + 20.0 * log10(f);
 }
 double final_signal(double txp, double antp, double pl){
     return txp + antp - pl;
@@ -70,23 +80,96 @@ QColor dbm_in_color(double dbm){
         return QColor(0, 0, 255);
     }
 }
-void MainWindow::draw(){
-    QPainter painter(map);
+void signal_atten(int **map, double **signal_map, double tx_power,
+                  double ant_power, double val_f, int x0, int y0, int x1, int y1)
+{
+    int x = x0;
+    int y = y0;
+    int dx = abs(x1 - x);
+    int dy = abs(y1 - y);
+    int sx = x < x1 ? 1 : -1;
+    int sy = y < y1 ? 1 : -1;
+    int err = dx - dy;
+    double f = 0;
+    while (x != x1 || y != y1) {
+
+        int err2 = err * 2;
+        if (err2 > -dy) {
+            err -= dy;
+            x += sx;
+
+        }
+        if (err2 < dx) {
+            err += dx;
+            y += sy;
+
+        }
+        switch(map[y][x]){
+        case (int)type_material::NO_MATERIAL:
+            signal_map[(int)y][x] = (f * -1.0) + (double)final_signal(tx_power, ant_power, PL_func(distance_points(x0, y0, x, y), val_f));
+
+            break;
+        default:
+
+            f += attenuation_material[map[y][x]](val_f) / 10.0;
+            break;
+        }
+    }
+    signal_map[y][x] = (f * -1.0) + (double)final_signal(tx_power, ant_power, PL_func(distance_points(x0, y0, x, y), val_f));
+
+}
+
+void thread_draw_map(MainWindow *main_win, int start_pos, int step){
     int x, y;
-    painter.setPen(QColor(100, 10, 100, 127));
-    for(y = 0; y < size_map_y; ++y){
-        for(x = 0; x < size_map_x; ++x){
-            double d = distance_points(pos_point_x, pos_point_y, x, y);
-            double pl = PL_func(d, val_f);
-            double fs = final_signal(tx_power, ant_power, pl);
-            painter.setPen(dbm_in_color(fs));
-            painter.drawPoint(x, y);
+
+    for(y = 0; y < main_win->size_map_y; ++y){
+
+        for(x = start_pos; x < main_win->size_map_x; x += step){
+            switch(main_win->map->get_map()[y][x]){
+            case (int)type_material::NO_MATERIAL:
+                signal_atten(main_win->map->get_map(), main_win->map->get_map_signal(), main_win->tx_power,
+                             main_win->ant_power, main_win->val_f, main_win->pos_point_x, main_win->pos_point_y, x, y);
+                break;
+            default:
+                break;
+
+            }
+        }
+    }
+
+}
+
+void MainWindow::draw(){
+
+    pixmap->fill( Qt::black);
+    QPainter painter(pixmap);
+    for(int i = 0; i < COUNT_THREAD; ++i){
+        threads[i] = std::thread(thread_draw_map, this, i, COUNT_THREAD);
+
+    }
+    for(int i = 0; i < COUNT_THREAD; ++i){
+        threads[i].join();
+    }
+    for(int y = 0; y < size_map_y; ++y){
+        for(int x = 0; x < size_map_x; ++x){
+
+            switch(map->get_map()[y][x]){
+            case (int)type_material::NO_MATERIAL:
+                painter.setPen(dbm_in_color(map->get_map_signal()[y][x]));
+                painter.drawPoint(x, y);
+                break;
+
+            default:
+                painter.setPen(color_material[ map->get_map()[y][x] ]);
+                painter.drawPoint(x, y);
+
+                break;
+
+            }
         }
     }
     painter.end();
-    scene->addPixmap(*map);
-    //view->add
-
+    scene->addPixmap(*pixmap);
 
 }
 
@@ -100,11 +183,8 @@ void MainWindow::mousePressEvent(QMouseEvent *mouse){
             pos_point_y = mouse->pos().y() - pos_map_y;
             draw();
         }
-
     }
 }
-
-
 void MainWindow::on_lineEdit_f_textEdited(const QString &arg1)
 {
     bool ok;
@@ -151,3 +231,12 @@ void MainWindow::draw_gradient(){
     gradientGroupBox->setLayout(colorMapVBox);
     this->layout()->addWidget(gradientGroupBox);
 }
+
+
+
+
+
+
+
+
+

@@ -10,10 +10,14 @@ CONFIG += c++11
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    map.cpp \
+    objectmap.cpp
 
 HEADERS += \
-    mainwindow.h
+    mainwindow.h \
+    map.hpp \
+    objectmap.hpp
 
 FORMS += \
     mainwindow.ui
