@@ -11,13 +11,15 @@ CONFIG += c++11
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    map.cpp \
-    objectmap.cpp
+    heat_map.cpp \
+    objectmap.cpp \
+    propagation_model.cpp
 
 HEADERS += \
     mainwindow.h \
-    map.hpp \
-    objectmap.hpp
+    heat_map.hpp \
+    objectmap.hpp \
+    propagation_model.hpp
 
 FORMS += \
     mainwindow.ui
