@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui widgets datavisualization 3dcore 3drender 3dinput 3dextras
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,12 +12,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     heat_map.cpp \
+    map_3d.cpp \
     objectmap.cpp \
     propagation_model.cpp
 
 HEADERS += \
     mainwindow.h \
     heat_map.hpp \
+    map_3d.hpp \
     objectmap.hpp \
     propagation_model.hpp
 

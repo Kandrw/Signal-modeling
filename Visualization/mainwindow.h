@@ -8,8 +8,10 @@
 #include <QMouseEvent>
 #include <QtWidgets>
 
+#include <QSurface>
 
 class HeatMap;
+class Map_3D;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -29,6 +31,8 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
+    Map_3D *map_3d;
+    void clicked();
 public:
 
     int w_height = 1000, w_width = 1200;
@@ -38,13 +42,13 @@ public:
 
     QLabel *label_;
     QGroupBox *gradientGroupBox;
-    HeatMap *map;
+    HeatMap *map = nullptr;
 
     void mousePressEvent(QMouseEvent *mouse);
     void draw();
     void draw_gradient_panel();
 
-    
+
 };
 
 

@@ -1,7 +1,9 @@
 #ifndef HEAT_MAP_HPP
 #define HEAT_MAP_HPP
 
+#include <iostream>
 #include <thread>
+
 
 #include <QPainter>
 #include <QGraphicsScene>
@@ -34,7 +36,9 @@ public:
     void signal_calculation();
     void draw();
     QGraphicsView *get_view();
+    char *get_file_texture();
 private:
+    char filename_map[FILENAME_MAX] = "../resource/map_signal.png";
     int **map;
     double **map_signal;
     int size_x, size_y;
@@ -42,7 +46,7 @@ private:
     double tx_power = 23;//mw
     double ant_power = 6;//коэф усиления
     double val_f = 2.4;
-
+    //std::vector <int> vet;
     std::thread threads[COUNT_THREAD];
     QColor dbm_in_color(double dbm);
 

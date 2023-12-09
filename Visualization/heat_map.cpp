@@ -207,10 +207,15 @@ void HeatMap::draw(){
         }
     }
     painter.end();
-    scene->addPixmap(*pixmap);
+
+    //scene->addPixmap(*pixmap);
+    pixmap->save(filename_map);
+
 }
 
-
+char *HeatMap::get_file_texture(){
+    return filename_map;
+}
 
 
 
